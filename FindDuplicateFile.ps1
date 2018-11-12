@@ -57,7 +57,7 @@ function Log(
 	Write-Output $Log | Out-File -FilePath $LogFileName -Encoding Default -append
 
 	# echo
-	Write-Host $Message $Log
+	[System.Console]::WriteLine($Log)
 }
 
 ###################################################
