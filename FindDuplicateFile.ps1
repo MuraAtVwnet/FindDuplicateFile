@@ -90,6 +90,8 @@ filter GetFileData{
 	# Full Path
 	$OriginalFileFullPath = $_.FullName
 
+	Log "[INFO] Get hash data : $OriginalFileFullPath"
+
 	if( Test-Path $OriginalFileFullPath ){
 		$FileData = New-Object PSObject | Select-Object `
 													CompareFileName,		# 比較ファイル名
@@ -285,12 +287,16 @@ Log "[INFO] All files count : $AllFilesCount"
 Log "[INFO] Select terget file."
 
 if( $Patterns.Count -ne 0 ){
+	Log "[INFO] Pattern select."
 	[array]$TergetFiles =  $AllFiles | SelectFiles
 }
 else{
+	Log "[INFO] All file."
 	[array]$TergetFiles = $AllFiles
 }
 
+# 対象ファイルに Hash などの必要データを追加
+Log "[INFO] Add hash data"
 $TergetFilesData = $TergetFiles | GetFileData
 
 $TergetFilesDataCount = $TergetFilesData.Count
@@ -298,7 +304,6 @@ Log "[INFO] Terget files count : $TergetFilesDataCount"
 
 # Sort
 Log "[INFO] Sort file datas"
-
 [array]$SortFilesData = $TergetFilesData | Sort-Object -Property `
 												CompareFileName,
 												Hash,
@@ -326,10 +331,8 @@ if( $AllList -eq $true ){
 }
 
 # 重複ファイル検出
-Log "[INFO] Get Duplicate file."
-
+Log "[INFO] Get duplicate files."
 [array]$DuplicateFiles = $SortFilesData | KeyBreak
-
 
 # ファイル処理
 if( $BackupDirectory -ne [string]$null ){
