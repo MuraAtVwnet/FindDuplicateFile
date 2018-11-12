@@ -72,110 +72,92 @@ function GetFileNames( [string]$Path ){
 ###################################################
 # 指定ファイルパターン抽出
 ###################################################
-function SelectFiles( [array]$Files, [array][string]$Patterns ){
+filter SelectFiles{
 
-	$SelectPatterns =@()
-	foreach($Pattern in $Patterns){
-		$SelectPatterns += $Pattern
-	}
-
-	$SelectedFiles = @()
-	foreach($File in $Files){
-		foreach($SelectPattern in $SelectPatterns){
-			if( $File.Name -like $SelectPattern ){
-				$SelectedFiles += $File
-				break
-			}
+	foreach($SelectPattern in $Patterns){
+		if( $_.Name -like $SelectPattern ){
+			return $_
 		}
 	}
-
-	return $SelectedFiles
 }
 
 
 ###################################################
 # 必要データ取得
 ###################################################
-function GetFileData([array]$Files){
+filter GetFileData{
 
-	$FilesData = @()
+	# Full Path
+	$OriginalFileFullPath = $_.FullName
 
-	foreach($File in $Files){
+	if( Test-Path $OriginalFileFullPath ){
+		$FileData = New-Object PSObject | Select-Object `
+													CompareFileName,		# 比較ファイル名
+													Hash,					# ハッシュ値
+													FullPath,				# Full Path
+													OriginalFileName,		# オリジナルファイル名
+													LastUpdate, 			# 最終更新日付
+													Size,					# サイズ(KB)
+													OriginalFileNameLength,	# オリジナルファイル名の長さ
+													FullPathLength,			# フルパスの長さ
+													Operation,				# 操作
+													BackupdFileName			# バックアップ先ファイル名
+
+		# 比較ファイル名
+		$TempFileName = $_.Name -replace " - コピー", ""
+		$TempFileName = $TempFileName -replace " - Copy", ""
+		# $TempFileName = $TempFileName -replace "_[0-9]+\.", "."
+		$FileData.CompareFileName = $TempFileName -replace " \([0-9]+\)\.", "."
+
+		# ハッシュ値
+		$FileData.Hash = (Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash
 
 		# Full Path
-		$OriginalFileFullPath = $File.FullName
+		$FileData.FullPath = $OriginalFileFullPath
 
-		if( Test-Path $OriginalFileFullPath ){
-			$FileData = New-Object PSObject | Select-Object `
-														CompareFileName,		# 比較ファイル名
-														Hash,					# ハッシュ値
-														FullPath,				# Full Path
-														OriginalFileName,		# オリジナルファイル名
-														LastUpdate, 			# 最終更新日付
-														Size,					# サイズ(KB)
-														OriginalFileNameLength,	# オリジナルファイル名の長さ
-														FullPathLength,			# フルパスの長さ
-														Operation,				# 操作
-														BackupdFileName			# バックアップ先ファイル名
+		# オリジナルファイル名
+		$FileData.OriginalFileName = $_.Name
 
-			# 比較ファイル名
-			$TempFileName = $File.Name -replace " - コピー", ""
-			$TempFileName = $TempFileName -replace " - Copy", ""
-			# $TempFileName = $TempFileName -replace "_[0-9]+\.", "."
-			$FileData.CompareFileName = $TempFileName -replace " \([0-9]+\)\.", "."
+		# 最終更新日付
+		$FileData.LastUpdate = $_.LastWriteTime
 
-			# ハッシュ値
-			$FileData.Hash = (Get-FileHash -Algorithm SHA256 -Path $File.FullName).Hash
+		# サイズ(KB)
+		$FileData.Size = [int]($_.Length / 1KB)
 
-			# Full Path
-			$FileData.FullPath = $OriginalFileFullPath
+		# バックアップ先ファイル名
+		$FileData.BackupdFileName = [string]$null
 
-			# オリジナルファイル名
-			$FileData.OriginalFileName = $File.Name
+		# オリジナルファイル名の長さ
+		$FileData.OriginalFileNameLength = $_.Name.Length
 
-			# 最終更新日付
-			$FileData.LastUpdate = $File.LastWriteTime
+		# フルパスの長さ
+		$FileData.FullPathLength = $OriginalFileFullPath.Length
 
-			# サイズ(KB)
-			$FileData.Size = [int]($File.Length / 1KB)
-
-			# バックアップ先ファイル名
-			$FileData.BackupdFileName = [string]$null
-
-			# オリジナルファイル名の長さ
-			$FileData.OriginalFileNameLength = $File.Name.Length
-
-			# フルパスの長さ
-			$FileData.FullPathLength = $OriginalFileFullPath.Length
-
-			$FilesData += $FileData
-		}
-		else {
-			$ErrorMessage = Log "[ERROR] $OriginalFileFullPath is not found !!"
-			Write-Host $ErrorMessage
-		}
+		return $FileData
 	}
-
-	return $FilesData
+	else {
+		$ErrorMessage = Log "[ERROR] $OriginalFileFullPath is not found !!"
+		# Write-Host $ErrorMessage
+	}
 }
 
 ###################################################
 # 重複ファイル検出
 ###################################################
-function KeyBreak([array]$Files){
+filter KeyBreak{
 
-	# 初期値設定
-	$InitFlag = $true
-	$FirstNameFlag = $true
-	$FirstHashFlag = $true
+	BEGIN{
+		# 初期値設定
+		$InitFlag = $true
+		$FirstNameFlag = $true
+		$FirstHashFlag = $true
 
-	$NewKeyCompareFileName = [string]$null
-	$NewKeyHash = [string]$null
-	$NewRec = $null
+		$NewKeyCompareFileName = [string]$null
+		$NewKeyHash = [string]$null
+		$NewRec = $null
+	}
 
-	$DuplicateData = @()
-
-	foreach( $File in $Files ){
+	PROCESS{
 		### 通常処理
 
 		# 初期処理
@@ -191,9 +173,9 @@ function KeyBreak([array]$Files){
 		$OldKeyHash = $NewKeyHash
 		$OldRec = $NewRec
 
-		$NewKeyCompareFileName = $File.CompareFileName
-		$NewKeyHash = $File.Hash
-		$NewRec = $File
+		$NewKeyCompareFileName = $_.CompareFileName
+		$NewKeyHash = $_.Hash
+		$NewRec = $_
 
 		# ファイル名重複
 		if( $OldKeyCompareFileName -eq $NewKeyCompareFileName ){
@@ -222,8 +204,8 @@ function KeyBreak([array]$Files){
 				$FirstHashFlag = $true
 			}
 
-			# 重複データ追加
-			$DuplicateData += $TmpRec
+			# 重複データ
+			return $TmpRec
 		}
 		# キーブレーク
 		else{
@@ -239,8 +221,8 @@ function KeyBreak([array]$Files){
 						$TmpRec.Hash = [string]$nul
 
 				}
-				# 重複データ追加
-				$DuplicateData += $TmpRec
+				# 重複データ
+				return $TmpRec
 			}
 			# フラグクリア
 			$FirstNameFlag = $true
@@ -248,69 +230,75 @@ function KeyBreak([array]$Files){
 		}
 	}
 
-	# 残ったデーターを出力
-	# キーブレークした後は重複データを出力する
-	if( $FirstNameFlag -eq $false ){
+	END{
+		# 残ったデーターを出力
+		# キーブレークした後は重複データを出力する
+		if( $FirstNameFlag -eq $false ){
 
-		$TmpRec = $NewRec
+			$TmpRec = $NewRec
 
-		# ファイル名重複
-		$TmpRec.CompareFileName = [string]$null
+			# ファイル名重複
+			$TmpRec.CompareFileName = [string]$null
 
-		# ハッシュも重複
-		if( $FirstHashFlag -eq $false ){
-				$TmpRec.Hash = [string]$nul
+			# ハッシュも重複
+			if( $FirstHashFlag -eq $false ){
+					$TmpRec.Hash = [string]$nul
+			}
+
+			# 重複データ
+			return $TmpRec
 		}
+	}
+}
 
-		# 重複データ
-		$DuplicateData += $TmpRec
+
+###################################################
+# 全ファイル取得
+###################################################
+filter GetAllFiles{
+	$Message = Log "[INFO] Get files: $_"
+	if( -not (Test-Path $_ )){
+		$ErrorMessage = Log "[ERROR] $_ is not found !!"
+		# Write-Host $ErrorMessage
 	}
 
-	return $DuplicateData
+	return GetFileNames $_
 }
 
 ###################################################
 # main
 ###################################################
-Log "[INFO] ============== START =============="
+$Message = Log "[INFO] ============== START =============="
 
 if( $CSVPath -eq [string]$null){
 	$CSVPath =$PSScriptRoot
 }
 
 # 指定ディレクトリ以下のファイル一覧取得
-$AllFiles = @()
 if( $Paths.Count -eq 0 ){
-	$Paths = Convert-Path .
+	[array]$Paths = Convert-Path .
 }
-foreach( $Path in $Paths ){
-	Log "[INFO] Get files: $Path"
-	if( -not (Test-Path $Path )){
-		$ErrorMessage = Log "[ERROR] $Path is not found !!"
-		Write-Host $ErrorMessage
-	}
+[array]$AllFiles = $Paths | GetAllFiles
 
-	$AllFiles += GetFileNames $Path
-}
 $AllFilesCount = $AllFiles.Count
-Log "[INFO] All files count : $AllFilesCount"
+$Message = Log "[INFO] All files count : $AllFilesCount"
 
 # ファイルパターンで対象ファイル抽出
-Log "[INFO] Select terget file."
+$Message = Log "[INFO] Select terget file."
 if( $Patterns.Count -ne 0 ){
-	[array]$TergetFiles = SelectFiles $AllFiles $Patterns
+	[array]$TergetFiles =  $AllFiles | SelectFiles
 }
 else{
 	[array]$TergetFiles = $AllFiles
 }
 
-$TergetFilesData = GetFileData $TergetFiles
+$TergetFilesData = $TergetFiles | GetFileData
 
 $TergetFilesDataCount = $TergetFilesData.Count
-Log "[INFO] Terget files count : $TergetFilesDataCount"
+$Message = Log "[INFO] Terget files count : $TergetFilesDataCount"
 
 # Sort
-Log "[INFO] Sort file datas"
+$Message = Log "[INFO] Sort file datas"
 [array]$SortFilesData = $TergetFilesData | Sort-Object -Property `
 												CompareFileName,
 												Hash,
@@ -323,7 +311,7 @@ $Now = Get-Date
 # 全ファイルリスト出力
 if( $AllList -eq $true ){
 	$OutputFile = Join-Path $CSVPath ($GC_AllFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
-	Log "[INFO] Output all file list : $OutputFile"
+	$Message = Log "[INFO] Output all file list : $OutputFile"
 	if( -not(Test-Path $CSVPath)){
 		mdkdir $CSVPath
 	}
@@ -336,8 +324,8 @@ if( $AllList -eq $true ){
 }
 
 # 重複ファイル検出
-Log "[INFO] Get Duplicate file."
-[array]$DuplicateFiles = KeyBreak $SortFilesData
+$Message = Log "[INFO] Get Duplicate file."
+[array]$DuplicateFiles = $SortFilesData | KeyBreak
 
 
 # ファイル処理
@@ -356,7 +344,7 @@ elseif( $Remove ){
 
 # 重複データ出力(テスト用/仕上げるときはオペレーションで必要フィールド追加するので、全オブジェクト出力)
 $OutputFile = Join-Path $CSVPath ($GC_DuplicateFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
-Log "[INFO] Output duplicate file list : $OutputFile"
+$Message = Log "[INFO] Output duplicate file list : $OutputFile"
 
 if( -not(Test-Path $CSVPath)){
 	mdkdir $CSVPath
@@ -370,4 +358,4 @@ $DuplicateFiles | Select-Object `
 						Operation,
 						BackupdFileName | Export-Csv -Path $OutputFile -Encoding Default
 
-Log "[INFO] ============== END =============="
+$Message = Log "[INFO] ============== END =============="
