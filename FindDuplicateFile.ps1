@@ -56,8 +56,8 @@ function Log(
 	# ログ出力
 	Write-Output $Log | Out-File -FilePath $LogFileName -Encoding Default -append
 
-	# echo させるために出力したログを戻す
-	Return $Log
+	# echo
+	Write-Host $Message $Log
 }
 
 ###################################################
@@ -136,8 +136,7 @@ filter GetFileData{
 		return $FileData
 	}
 	else {
-		$ErrorMessage = Log "[ERROR] $OriginalFileFullPath is not found !!"
-		# Write-Host $ErrorMessage
+		Log "[ERROR] $OriginalFileFullPath is not found !!"
 	}
 }
 
@@ -256,10 +255,9 @@ filter KeyBreak{
 # 全ファイル取得
 ###################################################
 filter GetAllFiles{
-	$Message = Log "[INFO] Get files: $_"
+	Log "[INFO] Get files: $_"
 	if( -not (Test-Path $_ )){
-		$ErrorMessage = Log "[ERROR] $_ is not found !!"
-		# Write-Host $ErrorMessage
+		Log "[ERROR] $_ is not found !!"
 	}
 
 	return GetFileNames $_
@@ -268,7 +266,7 @@ filter GetAllFiles{
 ###################################################
 # main
 ###################################################
-$Message = Log "[INFO] ============== START =============="
+Log "[INFO] ============== START =============="
 
 if( $CSVPath -eq [string]$null){
 	$CSVPath =$PSScriptRoot
@@ -281,10 +279,11 @@ if( $Paths.Count -eq 0 ){
 [array]$AllFiles = $Paths | GetAllFiles
 
 $AllFilesCount = $AllFiles.Count
-$Message = Log "[INFO] All files count : $AllFilesCount"
+Log "[INFO] All files count : $AllFilesCount"
 
 # ファイルパターンで対象ファイル抽出
-$Message = Log "[INFO] Select terget file."
+Log "[INFO] Select terget file."
+
 if( $Patterns.Count -ne 0 ){
 	[array]$TergetFiles =  $AllFiles | SelectFiles
 }
@@ -295,10 +294,11 @@ else{
 $TergetFilesData = $TergetFiles | GetFileData
 
 $TergetFilesDataCount = $TergetFilesData.Count
-$Message = Log "[INFO] Terget files count : $TergetFilesDataCount"
+Log "[INFO] Terget files count : $TergetFilesDataCount"
 
 # Sort
-$Message = Log "[INFO] Sort file datas"
+Log "[INFO] Sort file datas"
+
 [array]$SortFilesData = $TergetFilesData | Sort-Object -Property `
 												CompareFileName,
 												Hash,
@@ -311,7 +311,9 @@ $Now = Get-Date
 # 全ファイルリスト出力
 if( $AllList -eq $true ){
 	$OutputFile = Join-Path $CSVPath ($GC_AllFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
-	$Message = Log "[INFO] Output all file list : $OutputFile"
+
+	Log "[INFO] Output all file list : $OutputFile"
+
 	if( -not(Test-Path $CSVPath)){
 		mdkdir $CSVPath
 	}
@@ -324,7 +326,8 @@ if( $AllList -eq $true ){
 }
 
 # 重複ファイル検出
-$Message = Log "[INFO] Get Duplicate file."
+Log "[INFO] Get Duplicate file."
+
 [array]$DuplicateFiles = $SortFilesData | KeyBreak
 
 
@@ -339,12 +342,10 @@ elseif( $Remove ){
 	# オペレーション : delete
 }
 
-
-
-
 # 重複データ出力(テスト用/仕上げるときはオペレーションで必要フィールド追加するので、全オブジェクト出力)
 $OutputFile = Join-Path $CSVPath ($GC_DuplicateFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
-$Message = Log "[INFO] Output duplicate file list : $OutputFile"
+
+Log "[INFO] Output duplicate file list : $OutputFile"
 
 if( -not(Test-Path $CSVPath)){
 	mdkdir $CSVPath
@@ -358,4 +359,4 @@ $DuplicateFiles | Select-Object `
 						Operation,
 						BackupdFileName | Export-Csv -Path $OutputFile -Encoding Default
 
-$Message = Log "[INFO] ============== END =============="
+Log "[INFO] ============== END =============="
