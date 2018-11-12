@@ -90,7 +90,7 @@ filter GetFileData{
 	# Full Path
 	$OriginalFileFullPath = $_.FullName
 
-	Log "[INFO] Get hash data : $OriginalFileFullPath"
+	Log "[INFO] Get detail infomation : $OriginalFileFullPath"
 
 	if( Test-Path $OriginalFileFullPath ){
 		$FileData = New-Object PSObject | Select-Object `
@@ -296,7 +296,7 @@ else{
 }
 
 # 対象ファイルに Hash などの必要データを追加
-Log "[INFO] Add hash data"
+Log "[INFO] Get detail infomation."
 $TergetFilesData = $TergetFiles | GetFileData
 
 $TergetFilesDataCount = $TergetFilesData.Count
