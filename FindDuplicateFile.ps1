@@ -222,12 +222,13 @@ filter KeyBreak{
 						$TmpRec.Hash = [string]$nul
 
 				}
+				# フラグクリア
+				$FirstNameFlag = $true
+				$FirstHashFlag = $true
+
 				# 重複データ
 				return $TmpRec
 			}
-			# フラグクリア
-			$FirstNameFlag = $true
-			$FirstHashFlag = $true
 		}
 	}
 
