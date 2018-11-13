@@ -268,6 +268,52 @@ filter GetAllFiles{
 }
 
 ###################################################
+# ファイル操作
+###################################################
+function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
+	for( $i = 0; $i -lt $DuplicateFileCount; i++ ){
+		# ファイル名重複
+		if( $DuplicateFiles[$i].CompareFileName -eq [string]$null ){
+			# ファイル重複
+			if( $DuplicateFiles[$i].Hash -eq [string]$null ){
+				Log "[INFO] File duplicate : $DuplicateFiles[$i].FullPath"
+				# ファイル処理
+				if( $BackupDirectory -ne [string]$null ){
+					if( -not WhatIf ){
+						if( -not (Test-Path $BackupDirectory)){
+							md $BackupDirectory
+						}
+						# オペレーション : Move
+						$DuplicateFiles[$i].Operation = "Move"
+
+						# 移動先重複
+							###----------------------------------
+							# 移動先ファイル名
+							$DuplicateFiles[$i].BackupdFileName = "---------------------------"
+
+						# ファイル移動
+					}
+					Log "[INFO] File moved : $DuplicateFiles[$i].FullPath"
+				}
+				elseif( $Remove ){
+					if( -not WhatIf ){
+						# オペレーション : delete
+						$DuplicateFiles[$i].Operation = "Delete"
+						# 削除
+					}
+					Log "[INFO] File deleted : $DuplicateFiles[$i].FullPath"
+				}
+			}
+			# ファイル名のみ重複
+			else{
+				Log "[INFO] Name duplicate : $DuplicateFiles[$i].FullPath"
+				$DuplicateFiles[$i].Operation = "NOP"
+			}
+		}
+	}
+}
+
+###################################################
 # main
 ###################################################
 Log "[INFO] ============== START =============="
@@ -313,6 +359,7 @@ Log "[INFO] Sort file datas"
 												OriginalFileNameLength,
 												OriginalFileName
 
+# 処理時間
 $Now = Get-Date
 
 # 全ファイルリスト出力
@@ -339,45 +386,9 @@ Log "[INFO] Get duplicate files."
 $DuplicateFileCount = $DuplicateFiles.Count
 Log "[INFO] Duplicate file count : $DuplicateFileCount"
 
-for( $i = 0; $i -lt $DuplicateFileCount; i++ ){
-	# ファイル名重複
-	if( $DuplicateFiles[$i].CompareFileName -eq [string]$null ){
-
-		# ファイル重複
-		if( $DuplicateFiles[$i].Hash -eq [string]$null ){
-			Log "[INFO] File duplicate : $DuplicateFiles[$i].FullPath"
-			# ファイル処理
-			if( $BackupDirectory -ne [string]$null ){
-				if( -not WhatIf ){
-					if( -not (Test-Path $BackupDirectory)){
-						md $BackupDirectory
-					}
-					# オペレーション : Move
-					$DuplicateFiles[$i].Operation = "Move"
-
-					# 移動先重複
-						###----------------------------------
-						# 移動先ファイル名
-						$DuplicateFiles[$i].BackupdFileName = "---------------------------"
-
-					# ファイル移動
-				}
-				Log "[INFO] File moved : $DuplicateFiles[$i].FullPath"
-			}
-			elseif( $Remove ){
-				if( -not WhatIf ){
-					# オペレーション : delete
-					$DuplicateFiles[$i].Operation = "Delete"
-					# 削除
-				}
-				Log "[INFO] File deleted : $DuplicateFiles[$i].FullPath"
-			}
-		}
-		# ファイル名のみ重複
-		else{
-			Log "[INFO] Name duplicate : $DuplicateFiles[$i].FullPath"
-			$DuplicateFiles[$i].Operation = "NOP"
-		}
+# ファイル操作
+Log "[INFO] File operation"
+FileOperation $DuplicateFiles $DuplicateFileCount
 
 # 重複データ出力(テスト用/仕上げるときはオペレーションで必要フィールド追加するので、全オブジェクト出力)
 $OutputFile = Join-Path $CSVPath ($GC_DuplicateFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
