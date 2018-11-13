@@ -8,7 +8,8 @@ Param(
 	[switch]$Remove,			# 削除実行
 	[string]$BackupDirectory,	# バックアップフォルダ
 	[string]$LogPath,			# ログ出力ディレクトリ
-	[switch]$AllList			# 全リスト出力
+	[switch]$AllList,			# 全リスト出力
+	[switch]$WhatIf				# テスト
 	)
 
 # 全ファイルデータ名
@@ -335,16 +336,48 @@ if( $AllList -eq $true ){
 Log "[INFO] Get duplicate files."
 [array]$DuplicateFiles = $SortFilesData | KeyBreak
 
-# ファイル処理
-if( $BackupDirectory -ne [string]$null ){
-	# 移動
-	# オペレーション : Move
-	# 移動先ファイル名
-}
-elseif( $Remove ){
-	# 削除
-	# オペレーション : delete
-}
+$DuplicateFileCount = $DuplicateFiles.Count
+Log "[INFO] Duplicate file count : $DuplicateFileCount"
+
+for( $i = 0; $i -lt $DuplicateFileCount; i++ ){
+	# ファイル名重複
+	if( $DuplicateFiles[$i].CompareFileName -eq [string]$null ){
+
+		# ファイル重複
+		if( $DuplicateFiles[$i].Hash -eq [string]$null ){
+			Log "[INFO] File duplicate : $DuplicateFiles[$i].FullPath"
+			# ファイル処理
+			if( $BackupDirectory -ne [string]$null ){
+				if( -not WhatIf ){
+					if( -not (Test-Path $BackupDirectory)){
+						md $BackupDirectory
+					}
+					# オペレーション : Move
+					$DuplicateFiles[$i].Operation = "Move"
+
+					# 移動先重複
+						###----------------------------------
+						# 移動先ファイル名
+						$DuplicateFiles[$i].BackupdFileName = "---------------------------"
+
+					# ファイル移動
+				}
+				Log "[INFO] File moved : $DuplicateFiles[$i].FullPath"
+			}
+			elseif( $Remove ){
+				if( -not WhatIf ){
+					# オペレーション : delete
+					$DuplicateFiles[$i].Operation = "Delete"
+					# 削除
+				}
+				Log "[INFO] File deleted : $DuplicateFiles[$i].FullPath"
+			}
+		}
+		# ファイル名のみ重複
+		else{
+			Log "[INFO] Name duplicate : $DuplicateFiles[$i].FullPath"
+			$DuplicateFiles[$i].Operation = "NOP"
+		}
 
 # 重複データ出力(テスト用/仕上げるときはオペレーションで必要フィールド追加するので、全オブジェクト出力)
 $OutputFile = Join-Path $CSVPath ($GC_DuplicateFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
