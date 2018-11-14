@@ -327,12 +327,11 @@ function OutputDuplicateData([array]$SortFilesData, $Now){
 # ファイル操作
 ###################################################
 function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
-	for( $i = 0; $i -lt $DuplicateFileCount; i++ ){
+	for( $i = 0; $i -lt $DuplicateFileCount; $i++ ){
 		# ファイル名重複
 		if( $DuplicateFiles[$i].CompareFileName -eq [string]$null ){
 			# ファイル重複
 			if( $DuplicateFiles[$i].Hash -eq [string]$null ){
-				Log "[INFO] File duplicate : $DuplicateFiles[$i].FullPath"
 				# ファイル処理
 				if( $Move -ne [string]$null ){
 					if( -not (Test-Path $Move)){
@@ -391,11 +390,12 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 					# オペレーション : Remove
 					$DuplicateFiles[$i].Operation = "Remove"
 
+					$RemoveFile = $DuplicateFiles[$i].FullPath
 					if( -not $WhatIf ){
 						# 削除
-						Remove-Item DuplicateFiles[$i].FullPath
+						Remove-Item $RemoveFile
 					}
-					Log "[INFO] File deleted : $DuplicateFiles[$i].FullPath"
+					Log "[INFO] File duplicate (Remove) : $RemoveFile"
 				}
 			}
 			# ファイル名のみ重複
@@ -468,7 +468,7 @@ Log "[INFO] Duplicate file count : $DuplicateFileCount"
 
 # 重複ファイル操作
 Log "[INFO] File operation"
-# FileOperation $DuplicateFiles $DuplicateFileCount
+FileOperation $DuplicateFiles $DuplicateFileCount
 
 # 重複データ出力
 OutputDuplicateData $DuplicateFiles $Now
