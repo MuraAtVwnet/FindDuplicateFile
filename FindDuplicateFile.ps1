@@ -335,7 +335,9 @@ function OutputDuplicateData([array]$SortFilesData, $Now){
 ###################################################
 # ファイル操作
 ###################################################
-function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
+function FileOperation( [array]$DuplicateFiles ){
+
+	$DuplicateFileCount = $DuplicateFiles.Count
 	for( $i = 0; $i -lt $DuplicateFileCount; $i++ ){
 		# ファイル名重複
 		if( $DuplicateFiles[$i].CompareFileName -eq [string]$null ){
@@ -360,7 +362,7 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 					$MoveSourceFileFullName = $DuplicateFile
 
 					# 加工用移動先ファイル名
-                    $CompareFileName = GetCompareFileName $DuplicateFiles[$i].OriginalFileName
+					$CompareFileName = GetCompareFileName $DuplicateFiles[$i].OriginalFileName
 					$TempBuffer = $CompareFileName.Split( "." )
 					$Ext = "." + $TempBuffer[$TempBuffer.Count -1]
 					$Body = $CompareFileName.Replace($Ext, "")
@@ -426,7 +428,7 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 Log "[INFO] ============== START =============="
 
 if( $CSVPath -eq [string]$null){
-	$CSVPath =Convert-Path .
+	$CSVPath = Convert-Path .
 }
 
 # 指定ディレクトリ以下のファイル一覧取得
@@ -481,7 +483,7 @@ Log "[INFO] Duplicate file count : $DuplicateFileCount"
 
 # 重複ファイル操作
 Log "[INFO] File operation"
-FileOperation $DuplicateFiles $DuplicateFileCount
+FileOperation $DuplicateFiles
 
 # 重複データ出力
 OutputDuplicateData $DuplicateFiles $Now
