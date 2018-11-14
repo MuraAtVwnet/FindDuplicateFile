@@ -20,7 +20,7 @@ $GC_DuplicateFileName = "DuplicateData"
 
 # ログの出力先
 if( $LogPath -eq [string]$null ){
-	$GC_LogPath = $PSScriptRoot
+	$GC_LogPath = Convert-Path .
 }
 # ログファイル名
 $GC_LogName = "FindDuplicateFile"
@@ -82,6 +82,18 @@ filter SelectFiles{
 	}
 }
 
+###################################################
+# 比較ファイル名作成
+###################################################
+function GetCompareFileName([string]$FileName){
+	$TempFileName = $FileName -replace " - コピー", ""
+	$TempFileName = $TempFileName -replace " - Copy", ""
+	$TempFileName = $TempFileName -replace " \([0-9]+\)\.", "."
+
+	return $TempFileName
+}
+
+
 
 ###################################################
 # 必要データ取得
@@ -107,10 +119,7 @@ filter GetFileData{
 													BackupdFileName			# バックアップ先ファイル名
 
 		# 比較ファイル名
-		$TempFileName = $_.Name -replace " - コピー", ""
-		$TempFileName = $TempFileName -replace " - Copy", ""
-		# $TempFileName = $TempFileName -replace "_[0-9]+\.", "."
-		$FileData.CompareFileName = $TempFileName -replace " \([0-9]+\)\.", "."
+		$FileData.CompareFileName = GetCompareFileName $_.Name
 
 		# ハッシュ値
 		$FileData.Hash = (Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash
@@ -330,12 +339,16 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 	for( $i = 0; $i -lt $DuplicateFileCount; $i++ ){
 		# ファイル名重複
 		if( $DuplicateFiles[$i].CompareFileName -eq [string]$null ){
+
+			# 重複したファイル名
+			$DuplicateFile = $DuplicateFiles[$i].FullPath
+
 			# ファイル重複
 			if( $DuplicateFiles[$i].Hash -eq [string]$null ){
 				# ファイル処理
 				if( $Move -ne [string]$null ){
 					if( -not (Test-Path $Move)){
-						md $BackupDirectory
+						md $Move
 					}
 					# オペレーション : Move
 					$DuplicateFiles[$i].Operation = "Move"
@@ -344,13 +357,14 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 					$MoveDdestinationFileFullName = Join-Path $Move $DuplicateFiles[$i].OriginalFileName
 
 					# Default 移動元ファイル名
-					$MoveSourceFileFullName = Join-Path $DuplicateFiles[$i].OriginalFileName
+					$MoveSourceFileFullName = $DuplicateFile
 
 					# 加工用移動先ファイル名
-					$TempBuffer = $DuplicateFiles[$i].CompareFileName.Split( "." )
+                    $CompareFileName = GetCompareFileName $DuplicateFiles[$i].OriginalFileName
+					$TempBuffer = $CompareFileName.Split( "." )
 					$Ext = "." + $TempBuffer[$TempBuffer.Count -1]
-					$Body = $TempBuffer.Replace($Ext, "")
-					$SourceDirectory = Split-Path $DuplicateFiles[$i].FullPath -Parent
+					$Body = $CompareFileName.Replace($Ext, "")
+					$SourceDirectory = Split-Path $DuplicateFile -Parent
 
 					# 移動先重複回避
 					$Index = 0
@@ -359,9 +373,9 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 						if( -not (Test-Path $MoveDdestinationFileFullName)){
 							# ファイル移動
 							if( -not $WhatIf ){
-								Move-Item $MoveSourceFileFullName $BackupDirectory
+								Move-Item $MoveSourceFileFullName $MoveDdestinationFileFullName
 							}
-							Log "[INFO] File moved : $DuplicateFiles[$i].FullPath"
+							Log "[INFO] File duplicate (Move) : $DuplicateFile"
 							break
 						}
 
@@ -370,16 +384,16 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 						$Index++
 						$MovedFileName = $Body + " (" + $Index + ")" + $Ext
 
-						# 移動元ファイル名 をFull Path にする
+						# 移動先ファイル名 をFull Path にする
 						$MoveDdestinationFileFullName = Join-Path $Move $MovedFileName
 
 						# 移動元ファイル名を rename する
-						if( -not $WhatIf ){
-							Rename-Item $DuplicateFiles[$i].OriginalFileName $MovedFileName
-						}
+						#if( -not $WhatIf ){
+						#	Rename-Item $DuplicateFiles[$i].OriginalFileName $MovedFileName
+						#}
 
 						# Rename した move 元ファイル
-						$MoveDdestinationFileFullName = Join-Path $SourceDirectory $MovedFileName
+						# $MoveDdestinationFileFullName = Join-Path $SourceDirectory $MovedFileName
 					}
 
 					# 移動先ファイル名
@@ -390,17 +404,16 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 					# オペレーション : Remove
 					$DuplicateFiles[$i].Operation = "Remove"
 
-					$RemoveFile = $DuplicateFiles[$i].FullPath
 					if( -not $WhatIf ){
 						# 削除
 						Remove-Item $RemoveFile
 					}
-					Log "[INFO] File duplicate (Remove) : $RemoveFile"
+					Log "[INFO] File duplicate (Remove) : $DuplicateFile"
 				}
 			}
 			# ファイル名のみ重複
 			else{
-				Log "[INFO] Name duplicate : $DuplicateFiles[$i].FullPath"
+				Log "[INFO] Name duplicate (NOP) : $DuplicateFile"
 				$DuplicateFiles[$i].Operation = "NOP"
 			}
 		}
@@ -413,7 +426,7 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 Log "[INFO] ============== START =============="
 
 if( $CSVPath -eq [string]$null){
-	$CSVPath =$PSScriptRoot
+	$CSVPath =Convert-Path .
 }
 
 # 指定ディレクトリ以下のファイル一覧取得
