@@ -357,7 +357,7 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 					$Index = 0
 					while($true){
 						# 重複なし
-						if( -not (Test-Path $MoveDdestinationFileFullName){
+						if( -not (Test-Path $MoveDdestinationFileFullName)){
 							# ファイル移動
 							if( -not $WhatIf ){
 								Move-Item $MoveSourceFileFullName $BackupDirectory
