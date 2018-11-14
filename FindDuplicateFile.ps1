@@ -408,7 +408,7 @@ function FileOperation( [array]$DuplicateFiles ){
 
 					if( -not $WhatIf ){
 						# 削除
-						Remove-Item $RemoveFile
+						Remove-Item $DuplicateFile
 					}
 					Log "[INFO] File duplicate (Remove) : $DuplicateFile"
 				}
@@ -416,8 +416,12 @@ function FileOperation( [array]$DuplicateFiles ){
 			# ファイル名のみ重複
 			else{
 				Log "[INFO] Name duplicate (NOP) : $DuplicateFile"
-				$DuplicateFiles[$i].Operation = "NOP"
+				$DuplicateFiles[$i].Operation = "Original"
 			}
+		}
+		# オリジナルファイル判定
+		else{
+			$DuplicateFiles[$i].Operation = "Original"
 		}
 	}
 }
