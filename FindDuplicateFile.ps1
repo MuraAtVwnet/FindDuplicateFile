@@ -6,7 +6,7 @@ Param(
 	[array][string]$Patterns,	# ファイルパターン
 	[string]$CSVPath,			# CSV 出力 Path
 	[switch]$Remove,			# 削除実行
-	[string]$BackupDirectory,	# バックアップフォルダ
+	[string]$Move,				# Move 先フォルダ
 	[string]$LogPath,			# ログ出力ディレクトリ
 	[switch]$AllList,			# 全リスト出力
 	[switch]$WhatIf				# テスト
@@ -268,6 +268,62 @@ filter GetAllFiles{
 }
 
 ###################################################
+# Sort
+###################################################
+function DataSort($TergetFilesData){
+	[array]$SortFilesData = $TergetFilesData | Sort-Object -Property `
+													CompareFileName,
+													Hash,
+													FullPathLength,
+													OriginalFileNameLength,
+													OriginalFileName
+	return $SortFilesData
+}
+
+###################################################
+# 全データ出力
+###################################################
+function OutputAllData([array]$DuplicateFiles, $Now){
+	$OutputFile = Join-Path $CSVPath ($GC_AllFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
+
+	Log "[INFO] Output all file list : $OutputFile"
+
+	if( -not(Test-Path $CSVPath)){
+		mdkdir $CSVPath
+	}
+	$SortFilesData | Select-Object `
+						CompareFileName,
+						Hash,
+						FullPath,
+						OriginalFileName,
+						LastUpdate | Export-Csv -Path $OutputFile -Encoding Default
+}
+
+
+###################################################
+# 重複データ出力
+###################################################
+function OutputDuplicateData([array]$SortFilesData, $Now){
+
+	$OutputFile = Join-Path $CSVPath ($GC_DuplicateFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
+
+	Log "[INFO] Output duplicate file list : $OutputFile"
+
+	if( -not(Test-Path $CSVPath)){
+		mdkdir $CSVPath
+	}
+	$DuplicateFiles | Select-Object `
+							CompareFileName,
+							Hash,
+							FullPath,
+							OriginalFileName,
+							LastUpdate,
+							Operation,
+							BackupdFileName | Export-Csv -Path $OutputFile -Encoding Default
+}
+
+
+###################################################
 # ファイル操作
 ###################################################
 function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
@@ -278,28 +334,66 @@ function FileOperation( [array]$DuplicateFiles, $DuplicateFileCount ){
 			if( $DuplicateFiles[$i].Hash -eq [string]$null ){
 				Log "[INFO] File duplicate : $DuplicateFiles[$i].FullPath"
 				# ファイル処理
-				if( $BackupDirectory -ne [string]$null ){
-					if( -not WhatIf ){
-						if( -not (Test-Path $BackupDirectory)){
-							md $BackupDirectory
-						}
-						# オペレーション : Move
-						$DuplicateFiles[$i].Operation = "Move"
-
-						# 移動先重複
-							###----------------------------------
-							# 移動先ファイル名
-							$DuplicateFiles[$i].BackupdFileName = "---------------------------"
-
-						# ファイル移動
+				if( $Move -ne [string]$null ){
+					if( -not (Test-Path $Move)){
+						md $BackupDirectory
 					}
-					Log "[INFO] File moved : $DuplicateFiles[$i].FullPath"
+					# オペレーション : Move
+					$DuplicateFiles[$i].Operation = "Move"
+
+					# Default 移動先ファイル名
+					$MoveDdestinationFileFullName = Join-Path $Move $DuplicateFiles[$i].OriginalFileName
+
+					# Default 移動元ファイル名
+					$MoveSourceFileFullName = Join-Path $DuplicateFiles[$i].OriginalFileName
+
+					# 加工用移動先ファイル名
+					$TempBuffer = $DuplicateFiles[$i].CompareFileName.Split( "." )
+					$Ext = "." + $TempBuffer[$TempBuffer.Count -1]
+					$Body = $TempBuffer.Replace($Ext, "")
+					$SourceDirectory = Split-Path $DuplicateFiles[$i].FullPath -Parent
+
+					# 移動先重複回避
+					$Index = 0
+					while($true){
+						# 重複なし
+						if( -not (Test-Path $MoveDdestinationFileFullName){
+							# ファイル移動
+							if( -not $WhatIf ){
+								Move-Item $MoveSourceFileFullName $BackupDirectory
+							}
+							Log "[INFO] File moved : $DuplicateFiles[$i].FullPath"
+							break
+						}
+
+
+						# 移動先重複なのでファイル名をインクリメントする
+						$Index++
+						$MovedFileName = $Body + " (" + $Index + ")" + $Ext
+
+						# 移動元ファイル名 をFull Path にする
+						$MoveDdestinationFileFullName = Join-Path $Move $MovedFileName
+
+						# 移動元ファイル名を rename する
+						if( -not $WhatIf ){
+							Rename-Item $DuplicateFiles[$i].OriginalFileName $MovedFileName
+						}
+
+						# Rename した move 元ファイル
+						$MoveDdestinationFileFullName = Join-Path $SourceDirectory $MovedFileName
+					}
+
+					# 移動先ファイル名
+					$DuplicateFiles[$i].BackupdFileName = $MoveDdestinationFileFullName
+
 				}
 				elseif( $Remove ){
-					if( -not WhatIf ){
-						# オペレーション : delete
-						$DuplicateFiles[$i].Operation = "Delete"
+					# オペレーション : Remove
+					$DuplicateFiles[$i].Operation = "Remove"
+
+					if( -not $WhatIf ){
 						# 削除
+						Remove-Item DuplicateFiles[$i].FullPath
 					}
 					Log "[INFO] File deleted : $DuplicateFiles[$i].FullPath"
 				}
@@ -331,7 +425,7 @@ if( $Paths.Count -eq 0 ){
 $AllFilesCount = $AllFiles.Count
 Log "[INFO] All files count : $AllFilesCount"
 
-# ファイルパターンで対象ファイル抽出
+# ファイルパターンで対象ファイルを絞る
 Log "[INFO] Select terget file."
 
 if( $Patterns.Count -ne 0 ){
@@ -343,68 +437,40 @@ else{
 	[array]$TergetFiles = $AllFiles
 }
 
-# 対象ファイルに Hash などの必要データを追加
+# 対象ファイルに Hash などの必要情報を追加
 Log "[INFO] Get detail infomation."
 $TergetFilesData = $TergetFiles | GetFileData
 
+# 対象ファイル数表示
 $TergetFilesDataCount = $TergetFilesData.Count
 Log "[INFO] Terget files count : $TergetFilesDataCount"
 
-# Sort
+# Data Sort
 Log "[INFO] Sort file datas"
-[array]$SortFilesData = $TergetFilesData | Sort-Object -Property `
-												CompareFileName,
-												Hash,
-												FullPathLength,
-												OriginalFileNameLength,
-												OriginalFileName
+[array]$SortFilesData = DataSort $TergetFilesData
 
-# 処理時間
+# 出力ファイル用処理時間
 $Now = Get-Date
 
 # 全ファイルリスト出力
 if( $AllList -eq $true ){
-	$OutputFile = Join-Path $CSVPath ($GC_AllFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
-
-	Log "[INFO] Output all file list : $OutputFile"
-
-	if( -not(Test-Path $CSVPath)){
-		mdkdir $CSVPath
-	}
-	$SortFilesData | Select-Object `
-						CompareFileName,
-						Hash,
-						FullPath,
-						OriginalFileName,
-						LastUpdate | Export-Csv -Path $OutputFile -Encoding Default
+	Log "[INFO] Output all data"
+	OutputAllData $SortFilesData $Now
 }
 
 # 重複ファイル検出
 Log "[INFO] Get duplicate files."
 [array]$DuplicateFiles = $SortFilesData | KeyBreak
 
+# 重複数表示
 $DuplicateFileCount = $DuplicateFiles.Count
 Log "[INFO] Duplicate file count : $DuplicateFileCount"
 
-# ファイル操作
+# 重複ファイル操作
 Log "[INFO] File operation"
-FileOperation $DuplicateFiles $DuplicateFileCount
+# FileOperation $DuplicateFiles $DuplicateFileCount
 
-# 重複データ出力(テスト用/仕上げるときはオペレーションで必要フィールド追加するので、全オブジェクト出力)
-$OutputFile = Join-Path $CSVPath ($GC_DuplicateFileName + "_" +$Now.ToString("yyyy-MM-dd_HH-mm") + ".csv")
-
-Log "[INFO] Output duplicate file list : $OutputFile"
-
-if( -not(Test-Path $CSVPath)){
-	mdkdir $CSVPath
-}
-$DuplicateFiles | Select-Object `
-						CompareFileName,
-						Hash,
-						FullPath,
-						OriginalFileName,
-						LastUpdate,
-						Operation,
-						BackupdFileName | Export-Csv -Path $OutputFile -Encoding Default
+# 重複データ出力
+OutputDuplicateData $DuplicateFiles $Now
 
 Log "[INFO] ============== END =============="
