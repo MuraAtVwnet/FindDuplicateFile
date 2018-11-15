@@ -22,6 +22,10 @@ $GC_DuplicateFileName = "DuplicateData"
 if( $LogPath -eq [string]$null ){
 	$GC_LogPath = Convert-Path .
 }
+else{
+    $GC_LogPath = $LogPath
+}
+
 # ログファイル名
 $GC_LogName = "FindDuplicateFile"
 
@@ -347,12 +351,13 @@ function FileOperation( [array]$DuplicateFiles ){
 
 			# ファイル重複
 			if( $DuplicateFiles[$i].Hash -eq [string]$null ){
-				# ファイル処理
+
+				# オペレーション : Move
 				if( $Move -ne [string]$null ){
+
 					if( -not (Test-Path $Move)){
 						md $Move
 					}
-					# オペレーション : Move
 					$DuplicateFiles[$i].Operation = "Move"
 
 					# Default 移動先ファイル名
@@ -402,8 +407,8 @@ function FileOperation( [array]$DuplicateFiles ){
 					$DuplicateFiles[$i].BackupdFileName = $MoveDdestinationFileFullName
 
 				}
+				# オペレーション : Remove
 				elseif( $Remove ){
-					# オペレーション : Remove
 					$DuplicateFiles[$i].Operation = "Remove"
 
 					if( -not $WhatIf ){
@@ -413,7 +418,7 @@ function FileOperation( [array]$DuplicateFiles ){
 					Log "[INFO] File duplicate (Remove) : $DuplicateFile"
 				}
 			}
-			# ファイル名のみ重複
+			# ファイル名のみ重複はオリジナルファイル判定
 			else{
 				Log "[INFO] Name duplicate (NOP) : $DuplicateFile"
 				$DuplicateFiles[$i].Operation = "Original"
