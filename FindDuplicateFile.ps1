@@ -2,8 +2,8 @@
 # 重複ファイル検出
 ###################################################
 Param(
-	[array][string]$Paths,		# 探査する Path
-	[array][string]$Patterns,	# ファイルパターン
+	[array][string]$Path,		# 探査する Path
+	[array][string]$Pattern,	# ファイルパターン
 	[string]$CSVPath,			# CSV 出力 Path
 	[switch]$Remove,			# 削除実行
 	[string]$Move,				# Move 先フォルダ
@@ -79,7 +79,7 @@ function GetFileNames( [string]$Path ){
 ###################################################
 filter SelectFiles{
 
-	foreach($SelectPattern in $Patterns){
+	foreach($SelectPattern in $Pattern){
 		if( $_.Name -like $SelectPattern ){
 			return $_
 		}
@@ -441,10 +441,10 @@ if( $CSVPath -eq [string]$null){
 }
 
 # 指定ディレクトリ以下のファイル一覧取得
-if( $Paths.Count -eq 0 ){
-	[array]$Paths = Convert-Path .
+if( $Path.Count -eq 0 ){
+	[array]$Path = Convert-Path .
 }
-[array]$AllFiles = $Paths | GetAllFiles
+[array]$AllFiles = $Path | GetAllFiles
 
 $AllFilesCount = $AllFiles.Count
 Log "[INFO] All files count : $AllFilesCount"
@@ -452,7 +452,7 @@ Log "[INFO] All files count : $AllFilesCount"
 # ファイルパターンで対象ファイルを絞る
 Log "[INFO] Select terget file."
 
-if( $Patterns.Count -ne 0 ){
+if( $Pattern.Count -ne 0 ){
 	Log "[INFO] Pattern select."
 	[array]$TergetFiles =  $AllFiles | SelectFiles
 }
