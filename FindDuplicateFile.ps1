@@ -11,6 +11,9 @@
 重複リストのみ出力(オプションを何も指定ていない時の動作)
     重複リスト出力だけをします
 
+サブディレクトリも探査(-Recurse)
+    サブディレクトリも探査します
+
 削除(-Remove)
     重複したファイルを削除します
     重複リストには削除処理が記録されます
@@ -28,38 +31,38 @@
     実際の削除/移動はせず、動作確認だけします
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1
+PS C:\Photo> .\FindDuplicateFile.ps1 -Recurse
 カレントディレクトリ(C:\Photo)以下にある全ファイルの重複リストを出力します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Pattern *.jpg, *.png
+PS C:\Photo> .\FindDuplicateFile.ps1 -Recurse -Pattern *.jpg, *.png
 カレントディレクトリ(C:\Photo)以下にある「*.jpg」と「*.png」の重複リストを出力します
 
 動画や ISO などサイズの大きなファイルは、ハッシュ値の取得に時間がかかるので、特定種別のファイルだけ重複排除する場合はファイルパターンを指定するがお勧めです。
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Pattern *.jpg, *.png
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複リストを出力します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Pattern *.jpg, *.png -Remove
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Remove
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを削除します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Pattern *.jpg, *.png -Move C:\Photo\Backup
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Pattern *.jpg, *.png -Move C:\Photo\Backup -WhatIf
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -WhatIf
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動した場合の動作を確認します(実際の移動はしません)
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動します
 重複リストを「C:\Photo\CSV」に出力します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV -LogPath C:\Photo\Log
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV -LogPath C:\Photo\Log
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動します
 重複リストは「C:\Photo\CSV」に、実行ログは「C:\Photo\Log」に出力します
 
@@ -72,6 +75,9 @@ PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -P
 対象ファイルパターン
 省略時はすべてのファイルを対象にします
 複数指定する場合はカンマで区切ります
+
+.PARAMETER Recurse
+サブディレクトリも探査します
 
 .PARAMETER Remove
 重複ファイルを削除します
@@ -106,6 +112,7 @@ http://www.vwnet.jp/Windows/PowerShell/2018111601/FindDuplicateFile.htm
 ###################################################
 Param(
 	[string[]]$Path,			# 探査する Path
+	[switch]$Recurse,			# サブディレクトリも探査する
 	[string[]]$Pattern,			# ファイルパターン
 	[switch]$Remove,			# 削除実行
 	[string]$Move,				# Move 先フォルダ
@@ -172,7 +179,12 @@ function Log(
 # 指定ディレクトリ以下のファイル一覧取得
 ###################################################
 function GetFileNames( [string]$Path ){
-	[array]$FileAndDirs = Get-ChildItem $Path -Recurse
+	if( $Recurse ){
+		[array]$FileAndDirs = Get-ChildItem $Path -Recurse
+	}
+	else{
+		[array]$FileAndDirs = Get-ChildItem $Path
+	}
 	[array]$Files = $FileAndDirs | ? Attributes -notmatch "Directory"
 	return $Files
 }
