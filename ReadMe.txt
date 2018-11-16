@@ -19,7 +19,7 @@ FindDuplicateFile.ps1 -Move  C:\Backup
 FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>] [-Remove] [[-Move] <String>] [[-CSVPath] <String>] [[-LogPath] <String>] [-AllList] [-WhatIf] [<CommonParameters>]
 
 ■ 説明
-重複リストのみ出力(オプションを何も指定ていない時の動作)
+重複リストのみ出力(Remove/Moveオプションを指定していない時の動作)
     重複リスト出力だけをします
 
 サブディレクトリも探査(-Recurse)
