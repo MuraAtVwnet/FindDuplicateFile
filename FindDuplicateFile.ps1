@@ -2,8 +2,8 @@
 # 重複ファイル検出
 ###################################################
 Param(
-	[array][string]$Path,		# 探査する Path
-	[array][string]$Pattern,	# ファイルパターン
+	[string[]]$Path,		# 探査する Path
+	[string[]]$Pattern,	# ファイルパターン
 	[string]$CSVPath,			# CSV 出力 Path
 	[switch]$Remove,			# 削除実行
 	[string]$Move,				# Move 先フォルダ
@@ -420,7 +420,7 @@ function FileOperation( [array]$DuplicateFiles ){
 			}
 			# ファイル名のみ重複はオリジナルファイル判定
 			else{
-				Log "[INFO] Name duplicate (NOP) : $DuplicateFile"
+				# Log "[INFO] Name duplicate (NOP) : $DuplicateFile"
 				$DuplicateFiles[$i].Operation = "Original"
 			}
 		}
@@ -453,7 +453,9 @@ Log "[INFO] All files count : $AllFilesCount"
 Log "[INFO] Select terget file."
 
 if( $Pattern.Count -ne 0 ){
-	Log "[INFO] Pattern select."
+	$Patterns = ""
+	$Pattern | %{ $Patterns += $_ + " " }
+	Log "[INFO] Pattern select: $Patterns"
 	[array]$TergetFiles =  $AllFiles | SelectFiles
 }
 else{
@@ -465,36 +467,52 @@ else{
 Log "[INFO] Get detail infomation."
 $TergetFilesData = $TergetFiles | GetFileData
 
-# 対象ファイル数表示
+# 対象ファイル数
 $TergetFilesDataCount = $TergetFilesData.Count
-Log "[INFO] Terget files count : $TergetFilesDataCount"
 
-# Data Sort
-Log "[INFO] Sort file datas"
-[array]$SortFilesData = DataSort $TergetFilesData
-
-# 出力ファイル用処理時間
-$Now = Get-Date
-
-# 全ファイルリスト出力
-if( $AllList -eq $true ){
-	Log "[INFO] Output all data"
-	OutputAllData $SortFilesData $Now
+# 対象0件なら処理しない
+if( $TergetFilesDataCount -eq 0 ){
+	Log "[INFO] Terget files is zero."
 }
+else{
+	# 対象ファイル数表示
+	Log "[INFO] Terget files count : $TergetFilesDataCount"
 
-# 重複ファイル検出
-Log "[INFO] Get duplicate files."
-[array]$DuplicateFiles = $SortFilesData | KeyBreak
+	# Data Sort
+	Log "[INFO] Data sort."
+	[array]$SortFilesData = DataSort $TergetFilesData
 
-# 重複数表示
-$DuplicateFileCount = $DuplicateFiles.Count
-Log "[INFO] Duplicate file count : $DuplicateFileCount"
+	# 出力ファイル用処理時間
+	$Now = Get-Date
 
-# 重複ファイル操作
-Log "[INFO] File operation"
-FileOperation $DuplicateFiles
+	# 全ファイルリスト出力
+	if( $AllList -eq $true ){
+		Log "[INFO] Output all data"
+		OutputAllData $SortFilesData $Now
+	}
 
-# 重複データ出力
-OutputDuplicateData $DuplicateFiles $Now
+	# 重複ファイル検出
+	Log "[INFO] Get duplicate files."
+	[array]$DuplicateFiles = $SortFilesData | KeyBreak
+
+	# 重複ファイル数
+	$DuplicateFileCount = $DuplicateFiles.Count
+
+	# 重複 0 件なら処理しない
+	if($DuplicateFileCount -eq 0){
+		Log "[INFO] Duplicate file is zero."
+	}
+	else{
+		# 重複ファイル数表示
+		Log "[INFO] Duplicate file count : $DuplicateFileCount"
+
+		# 重複ファイル操作
+		Log "[INFO] File operation"
+		FileOperation $DuplicateFiles
+
+		# 重複データ出力
+		OutputDuplicateData $DuplicateFiles $Now
+	}
+}
 
 Log "[INFO] ============== END =============="
