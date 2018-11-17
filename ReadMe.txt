@@ -115,9 +115,9 @@ Windows 10 : PowerShell 6.0.1
 6.0.1 で動作確認しているので、Windows 以外でも動作すると思います。
 
 ■ ダウンロード
-リポジトリから Clone するか、wget してください
+リポジトリを Clone するか、Invoke-WebRequest してください
 
-wget https://raw.githubusercontent.com/MuraAtVwnet/FindDuplicateFile/master/FindDuplicateFile.ps1 -OutFile ~\FindDuplicateFile.ps1
+Invoke-WebRequest https://raw.githubusercontent.com/MuraAtVwnet/FindDuplicateFile/master/FindDuplicateFile.ps1 -OutFile ~\FindDuplicateFile.ps1
 
 ■ リポジトリ
 https://github.com/MuraAtVwnet/FindDuplicateFile
