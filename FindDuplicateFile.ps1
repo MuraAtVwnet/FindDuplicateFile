@@ -594,7 +594,16 @@ function GetExt2App([string]$Ext){
 	return $ExeInfo
 }
 
-
+###################################################
+# ファイルのショートカットを作る
+###################################################
+function CreateShortcut([string]$ShortcutPath, [string]$LinkPath ){
+	# ショートカットを作る
+	$WsShell = New-Object -ComObject WScript.Shell
+	$Shortcut = $WsShell.CreateShortcut($ShortcutPath)
+	$Shortcut.TargetPath = $LinkPath
+	$Shortcut.Save()
+}
 
 ###################################################
 # main
