@@ -27,6 +27,9 @@
     特定拡張子のファイルだけ重複確認する場合は、パターン(*.jpg とか)を指定します
     複数指定する場合は、カンマ「,」で区切ってください
 
+ショートカット作成(-CreateShortcut)
+    ファイルを削除/移動する際にオリジナルファイルへのショートカットを残します
+
 テスト(-WhatIf)
     実際の削除/移動はせず、動作確認だけします
 
@@ -66,6 +69,11 @@ PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -R
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動します
 重複リストは「C:\Photo\CSV」に、実行ログは「C:\Photo\Log」に出力します
 
+.EXAMPLE
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CreateShortcut
+「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動し、代わりにショートカットを置きます
+重複リストを「C:\Photo\CSV」に出力します
+
 .PARAMETER Path
 探索 Path
 省略時はカレントディレクトリ以下を探索します
@@ -83,10 +91,12 @@ PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -R
 重複ファイルを削除します
 Remove/Move が指定されていない場合は重複リストのみを出力します
 
-.PARAMETER Move
-重複ファイルの移動先
-Remove/Move が指定されていない場合は重複リストのみを出力します
-Remove/Move の両方が指定された場合は Move が優先されます
+.PARAMETER CreateShortcut
+重複ファイルを削除/移動した時に、オリジナルファイルへのショートカットを残します
+
+.PARAMETER CSVPath
+CSV の出力先
+省略時はカレントディレクトリに出力します
 
 .PARAMETER CSVPath
 CSV の出力先
@@ -116,6 +126,7 @@ Param(
 	[string[]]$Pattern,			# ファイルパターン
 	[switch]$Remove,			# 削除実行
 	[string]$Move,				# Move 先フォルダ
+	[switch]$CreateShortcut,	# ショートカットを残す
 	[string]$CSVPath,			# CSV 出力 Path
 	[string]$LogPath,			# ログ出力ディレクトリ
 	[switch]$AllList,			# 全リスト出力
@@ -185,7 +196,11 @@ function GetFileNames( [string]$Path ){
 	else{
 		[array]$FileAndDirs = Get-ChildItem $Path
 	}
-	[array]$Files = $FileAndDirs | ? Attributes -notmatch "Directory"
+	[array]$TempFiles = $FileAndDirs | ? Attributes -notmatch "Directory"
+
+	# ショートカットは対象外にする
+	[array]$Files = $TempFiles | ? Name -notlike "*.lnk"
+
 	return $Files
 }
 
@@ -459,6 +474,9 @@ function FileOperation( [array]$DuplicateFiles ){
 	$DuplicateFileCount = $DuplicateFiles.Count
 	$OperationCount = 0
 
+	# ショートカット作成用のオリジナルフルパス
+	$OriginalFilePath = [string]$null
+
 	for( $i = 0; $i -lt $DuplicateFileCount; $i++ ){
 		# ファイル名重複
 		if( $DuplicateFiles[$i].CompareFileName -eq [string]$null ){
@@ -498,6 +516,10 @@ function FileOperation( [array]$DuplicateFiles ){
 							# ファイル移動
 							if( -not $WhatIf ){
 								Move-Item $MoveSourceFileFullName $MoveDdestinationFileFullName
+								# ショートカットを残す
+								if( $CreateShortcut ){
+									CreateShortcut $MoveSourceFileFullName $OriginalFilePath
+								}
 							}
 							Log "[INFO] File duplicate (Move) : $DuplicateFile"
 							break
@@ -510,14 +532,6 @@ function FileOperation( [array]$DuplicateFiles ){
 
 						# 移動先ファイル名 をFull Path にする
 						$MoveDdestinationFileFullName = Join-Path $Move $MovedFileName
-
-						# 移動元ファイル名を rename する
-						#if( -not $WhatIf ){
-						#	Rename-Item $DuplicateFiles[$i].OriginalFileName $MovedFileName
-						#}
-
-						# Rename した move 元ファイル
-						# $MoveDdestinationFileFullName = Join-Path $SourceDirectory $MovedFileName
 					}
 
 					# 移動先ファイル名
@@ -532,6 +546,10 @@ function FileOperation( [array]$DuplicateFiles ){
 					if( -not $WhatIf ){
 						# 削除
 						Remove-Item $DuplicateFile
+						# ショートカットを残す
+						if( $CreateShortcut ){
+							CreateShortcut $DuplicateFile $OriginalFilePath
+						}
 					}
 					Log "[INFO] File duplicate (Remove) : $DuplicateFile"
 
@@ -542,11 +560,13 @@ function FileOperation( [array]$DuplicateFiles ){
 			else{
 				# Log "[INFO] Name duplicate (NOP) : $DuplicateFile"
 				$DuplicateFiles[$i].Operation = "Original"
+				$OriginalFilePath = $DuplicateFiles[$i].FullPath
 			}
 		}
 		# オリジナルファイル判定
 		else{
 			$DuplicateFiles[$i].Operation = "Original"
+			$OriginalFilePath = $DuplicateFiles[$i].FullPath
 		}
 	}
 
@@ -555,6 +575,8 @@ function FileOperation( [array]$DuplicateFiles ){
 
 ###################################################
 # 拡張子から関連付けられたプログラムを得る
+# 書いたけど、使わないかも....
+# 不要だとわかったら削除
 ###################################################
 function GetExt2App([string]$Ext){
 	if($Ext[0] -ne "."){
@@ -598,11 +620,16 @@ function GetExt2App([string]$Ext){
 # ファイルのショートカットを作る
 ###################################################
 function CreateShortcut([string]$ShortcutPath, [string]$LinkPath ){
-	# ショートカットを作る
-	$WsShell = New-Object -ComObject WScript.Shell
-	$Shortcut = $WsShell.CreateShortcut($ShortcutPath)
-	$Shortcut.TargetPath = $LinkPath
-	$Shortcut.Save()
+	if($LinkPath -ne [string]$null ){
+
+		$ShortcutName = $ShortcutPath + ".lnk"
+
+		# ショートカットを作る
+		$WsShell = New-Object -ComObject WScript.Shell
+		$Shortcut = $WsShell.CreateShortcut($ShortcutName)
+		$Shortcut.TargetPath = $LinkPath
+		$Shortcut.Save()
+	}
 }
 
 ###################################################

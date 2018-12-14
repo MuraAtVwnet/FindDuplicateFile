@@ -38,6 +38,9 @@ FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>] [-Remove] [[-
     特定拡張子のファイルだけ重複確認する場合は、パターン(*.jpg とか)を指定します
     複数指定する場合は、カンマ「,」で区切ってください
 
+ショートカット作成(-CreateShortcut)
+    ファイルを削除/移動する際にオリジナルファイルへのショートカットを残します
+
 テスト(-WhatIf)
     実際の削除/移動はせず、動作確認だけします
 
@@ -63,6 +66,9 @@ FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>] [-Remove] [[-
     重複ファイルの移動先
     Remove/Move が指定されていない場合は重複リストのみを出力します
     Remove/Move の両方が指定された場合は Move が優先されます
+
+-CreateShortcut
+    重複ファイルを削除/移動した時に、オリジナルファイルへのショートカットを残します
 
 -CSVPath
     CSV の出力先
@@ -107,6 +113,12 @@ PS C:\Photo> ~\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -R
 PS C:\Photo> ~\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV -LogPath C:\Photo\Log
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動します
 重複リストは「C:\Photo\CSV」に、実行ログは「C:\Photo\Log」に出力します
+
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CreateShortcut
+「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動し、代わりにショートカットを置きます
+重複リストを「C:\Photo\CSV」に出力します
+
+ショートカット(.lnk)は処理対象から外しています。
 
 ■ 動作確認環境
 Windows 10 : PowerShell 5.1
