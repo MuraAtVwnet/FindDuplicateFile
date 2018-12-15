@@ -29,6 +29,7 @@
 
 ショートカット作成(-CreateShortcut)
     ファイルを削除/移動する際にオリジナルファイルへのショートカットを残します
+    (Windows プラットフォーム専用オプション)
 
 テスト(-WhatIf)
     実際の削除/移動はせず、動作確認だけします
@@ -145,6 +146,16 @@ if( $LogPath -eq [string]$null ){
 }
 else{
 	$GC_LogPath = $LogPath
+}
+
+# Windows プラットフォーム以外では -CreateShortcut オプションを無効化する
+if( $PSVersionTable.PSVersion.Major -ge 6 ){
+	if( $PSVersionTable.OS -NotMatch "Windows" ){
+		if( $CreateShortcut -eq $true ){
+			$CreateShortcut = $false
+			Log "[WARNING] -CreateShortcut is only Windows platform"
+		}
+	}
 }
 
 # ログファイル名

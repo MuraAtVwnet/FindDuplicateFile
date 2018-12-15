@@ -69,6 +69,7 @@ FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>] [-Remove] [[-
 
 -CreateShortcut
     重複ファイルを削除/移動した時に、オリジナルファイルへのショートカットを残します
+    (Windows プラットフォーム専用オプション)
 
 -CSVPath
     CSV の出力先
