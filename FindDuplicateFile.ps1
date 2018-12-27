@@ -585,49 +585,6 @@ function FileOperation( [array]$DuplicateFiles ){
 }
 
 ###################################################
-# 拡張子から関連付けられたプログラムを得る
-# 書いたけど、使わないかも....
-# 不要だとわかったら削除
-###################################################
-function GetExt2App([string]$Ext){
-	if($Ext[0] -ne "."){
-		$Ext = "." + $Ext
-	}
-
-	# 関連付けられた内部情報
-	$TempBuffer = cmd /c assoc $Ext
-	if( $LastExitCode -ne 0 ){
-		return $null
-	}
-
-	if( $TempBuffer -like "*file"){
-		return $null
-	}
-
-	$TempInfo = $TempBuffer.Split("=")
-	if( $TempInfo.Count -ne 2 ){
-		return $null
-	}
-
-	$InternalInfo = $TempInfo[1]
-
-	# 関連付けられたプログラム
-	$TempBuffer = cmd /c ftype $InternalInfo
-	$TempInfo = $TempBuffer.Split("=")
-	if( $TempInfo.Count -ne 2 ){
-		return $null
-	}
-	# プログラムとオプション
-	$TempBuffer = $TempInfo[1]
-
-	# プログラム名だけにする
-	if( $TempBuffer -match	"^`"(?<ExeInfo>.+?)`"" ){
-		$ExeInfo = $Matches.ExeInfo
-	}
-	return $ExeInfo
-}
-
-###################################################
 # ファイルのショートカットを作る
 ###################################################
 function CreateShortcut([string]$ShortcutPath, [string]$LinkPath ){
