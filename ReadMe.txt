@@ -16,7 +16,7 @@ FindDuplicateFile.ps1 -Remove
 FindDuplicateFile.ps1 -Move  C:\Backup
 
 ■ 構文
-FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>] [-Remove] [[-Move] <String>] [[-CSVPath] <String>] [[-LogPath] <String>] [-AllList] [-WhatIf] [<CommonParameters>]
+FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>]  [[-ExcludePattern] <String[]>] [-Remove] [[-Move] <String>] [[-CSVPath] <String>] [[-LogPath] <String>] [-AllList] [-WhatIf] [<CommonParameters>]
 
 ■ 説明
 重複リストのみ出力(Remove/Moveオプションを指定していない時の動作)
@@ -38,6 +38,10 @@ FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>] [-Remove] [[-
     特定拡張子のファイルだけ重複確認する場合は、パターン(*.jpg とか)を指定します
     複数指定する場合は、カンマ「,」で区切ってください
 
+除外ファイルパターン指定(-ExcludePattern)
+    特定拡張子のファイルを対象から除外する場合は、除外パターン(*.jpg とか)を指定します
+    複数指定する場合は、カンマ「,」で区切ってください
+
 ショートカット作成(-CreateShortcut)
     ファイルを削除/移動する際にオリジナルファイルへのショートカットを残します
 
@@ -56,6 +60,11 @@ FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>] [-Remove] [[-
 -Pattern
     対象ファイルパターン
     省略時はすべてのファイルを対象にします
+    複数指定する場合はカンマで区切ります
+
+-ExcludePattern
+    対象から除外するファイルパターン
+    省略時は除外しません
     複数指定する場合はカンマで区切ります
 
 -Remove

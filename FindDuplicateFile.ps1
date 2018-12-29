@@ -27,6 +27,10 @@
     特定拡張子のファイルだけ重複確認する場合は、パターン(*.jpg とか)を指定します
     複数指定する場合は、カンマ「,」で区切ってください
 
+除外ファイルパターン指定(-ExcludePattern)
+    特定拡張子のファイルを対象から除外する場合は、除外パターン(*.jpg とか)を指定します
+    複数指定する場合は、カンマ「,」で区切ってください
+
 ショートカット作成(-CreateShortcut)
     ファイルを削除/移動する際にオリジナルファイルへのショートカットを残します
     (Windows プラットフォーム専用オプション)
@@ -47,6 +51,10 @@ PS C:\Photo> .\FindDuplicateFile.ps1 -Recurse -Pattern *.jpg, *.png
 .EXAMPLE
 PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複リストを出力します
+
+.EXAMPLE
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -ExcludePattern *.iso, *.mov
+「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.iso」と「*.mov」以外の重複リストを出力します
 
 .EXAMPLE
 PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Remove
@@ -83,6 +91,11 @@ PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -R
 .PARAMETER Pattern
 対象ファイルパターン
 省略時はすべてのファイルを対象にします
+複数指定する場合はカンマで区切ります
+
+.PARAMETER ExcludePattern
+対象から除外するファイルパターン
+省略時は除外しません
 複数指定する場合はカンマで区切ります
 
 .PARAMETER Recurse
@@ -125,6 +138,7 @@ Param(
 	[string[]]$Path,			# 探査する Path
 	[switch]$Recurse,			# サブディレクトリも探査する
 	[string[]]$Pattern,			# ファイルパターン
+	[string[]]$ExcludePattern,	# 除外ファイルパターン
 	[switch]$Remove,			# 削除実行
 	[string]$Move,				# Move 先フォルダ
 	[switch]$CreateShortcut,	# ショートカットを残す
@@ -219,11 +233,25 @@ function GetFileNames( [string]$Path ){
 # 指定ファイルパターン抽出
 ###################################################
 filter SelectFiles{
-
-	foreach($SelectPattern in $Pattern){
-		if( $_.Name -like $SelectPattern ){
+	foreach($Select in $Pattern){
+		if( $_.Name -like $Select ){
 			return $_
 		}
+	}
+}
+
+###################################################
+# 指定ファイルパターン除外
+###################################################
+filter ExcludeFiles{
+	$ExcludeFlag = $false
+	foreach($Exclude in $ExcludePattern){
+		if( $_.Name -like $Exclude ){
+			$ExcludeFlag = $true
+		}
+	}
+	if( $ExcludeFlag -eq $false ){
+		return $_
 	}
 }
 
@@ -237,8 +265,6 @@ function GetCompareFileName([string]$FileName){
 
 	return $TempFileName
 }
-
-
 
 ###################################################
 # 必要データ取得
@@ -624,12 +650,25 @@ Log "[INFO] Select terget file."
 if( $Pattern.Count -ne 0 ){
 	$Patterns = ""
 	$Pattern | %{ $Patterns += $_ + " " }
-	Log "[INFO] Pattern select: $Patterns"
+	Log "[INFO] Select pattern : $Patterns"
 	[array]$TergetFiles =  $AllFiles | SelectFiles
 }
 else{
 	Log "[INFO] All file."
 	[array]$TergetFiles = $AllFiles
+}
+
+# 除外ファイルパターンで対象ファイルを絞る
+Log "[INFO] Exclude terget file."
+
+if( $ExcludePattern.Count -ne 0 ){
+	$Patterns = ""
+	$ExcludePattern | %{ $Patterns += $_ + " " }
+	Log "[INFO] Exclude pattern : $Patterns"
+	[array]$TergetFiles =  $TergetFiles | ExcludeFiles
+}
+else{
+	Log "[INFO] Not exclude file."
 }
 
 # 対象ファイルに Hash などの必要情報を追加
