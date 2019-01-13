@@ -1,9 +1,9 @@
 ﻿<#
 .SYNOPSIS
-指定フォルダにある重複ファイルの検出、削除、移動をします。
-比較は、ファイル名の「- コピー」「- Copy」「(数字)」を無視し、sha256 ハッシュと合わせて比較しますので、ファイル名が同じでも内容が異なる場合は別ファイル扱いにします。
+指定フォルダにあるハッシュ値が同じファイルを重複ファイルとして検出、削除、移動をします。
+比較は sha256 ハッシュで比較しますので、ファイル名違っていてもハッシュ値が同じであれば重複ファイルとみなします。
 
-ファイル名を無視してハッシュ値だけで比較する場合は FindDuplicateHash.ps1 を使ってください。
+ファイル名も比較する場合は FindDuplicateFile.ps1 を使ってください。
 
 重複したファイルは CSV 出力し、削除/移動した場合はリストにその操作も記録されます。
 カレントディレクトリに実行ログも出力されます。
@@ -41,47 +41,47 @@
     実際の削除/移動はせず、動作確認だけします
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Recurse
+PS C:\Photo> .\FindDuplicateHash.ps1 -Recurse
 カレントディレクトリ(C:\Photo)以下にある全ファイルの重複リストを出力します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Recurse -Pattern *.jpg, *.png
+PS C:\Photo> .\FindDuplicateHash.ps1 -Recurse -Pattern *.jpg, *.png
 カレントディレクトリ(C:\Photo)以下にある「*.jpg」と「*.png」の重複リストを出力します
 
 動画や ISO などサイズの大きなファイルは、ハッシュ値の取得に時間がかかるので、特定種別のファイルだけ重複排除する場合はファイルパターンを指定するがお勧めです。
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png
+PS C:\Photo> .\FindDuplicateHash.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複リストを出力します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -ExcludePattern *.iso, *.mov, *.mp4
+PS C:\Photo> .\FindDuplicateHash.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -ExcludePattern *.iso, *.mov, *.mp4
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.iso」と「*.mov」と「*.mp4」以外の重複リストを出力します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Remove
+PS C:\Photo> .\FindDuplicateHash.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Remove
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを削除します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup
+PS C:\Photo> .\FindDuplicateHash.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -WhatIf
+PS C:\Photo> .\FindDuplicateHash.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -WhatIf
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動した場合の動作を確認します(実際の移動はしません)
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV
+PS C:\Photo> .\FindDuplicateHash.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動します
 重複リストを「C:\Photo\CSV」に出力します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV -LogPath C:\Photo\Log
+PS C:\Photo> .\FindDuplicateHash.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CSVPath C:\Photo\CSV -LogPath C:\Photo\Log
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動します
 重複リストは「C:\Photo\CSV」に、実行ログは「C:\Photo\Log」に出力します
 
 .EXAMPLE
-PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CreateShortcut
+PS C:\Photo> .\FindDuplicateHash.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Move C:\Photo\Backup -CreateShortcut
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを「C:\Photo\Backup」へ移動し、代わりにショートカットを置きます
 重複リストを「C:\Photo\CSV」に出力します
 
@@ -175,7 +175,7 @@ if( $PSVersionTable.PSVersion.Major -ge 6 ){
 }
 
 # ログファイル名
-$GC_LogName = "FindDuplicateFile"
+$GC_LogName = "FindDuplicateHash"
 
 ##########################################################################
 # ログ出力
@@ -280,10 +280,9 @@ filter GetFileData{
 
 	if( Test-Path $OriginalFileFullPath ){
 		$FileData = New-Object PSObject | Select-Object `
-													CompareFileName,		# 比較ファイル名
+													FileName,		# オリジナルファイル名
 													Hash,					# ハッシュ値
 													FullPath,				# Full Path
-													OriginalFileName,		# オリジナルファイル名
 													LastUpdate, 			# 最終更新日付
 													Size,					# サイズ(KB)
 													OriginalFileNameLength,	# オリジナルファイル名の長さ
@@ -291,17 +290,14 @@ filter GetFileData{
 													Operation,				# 操作
 													BackupdFileName			# バックアップ先ファイル名
 
-		# 比較ファイル名
-		$FileData.CompareFileName = GetCompareFileName $_.Name
+		# オリジナルファイル名
+		$FileData.FileName = $_.Name
 
 		# ハッシュ値
 		$FileData.Hash = (Get-FileHash -Algorithm SHA256 -Path $_.FullName).Hash
 
 		# Full Path
 		$FileData.FullPath = $OriginalFileFullPath
-
-		# オリジナルファイル名
-		$FileData.OriginalFileName = $_.Name
 
 		# 最終更新日付
 		$FileData.LastUpdate = $_.LastWriteTime
@@ -332,11 +328,7 @@ filter KeyBreak{
 
 	BEGIN{
 		# 初期値設定
-		$InitFlag = $true
-		$FirstNameFlag = $true
 		$FirstHashFlag = $true
-
-		$NewKeyCompareFileName = [string]$null
 		$NewKeyHash = [string]$null
 		$NewRec = $null
 	}
@@ -344,60 +336,33 @@ filter KeyBreak{
 	PROCESS{
 		### 通常処理
 		# 比較キーとデータセット
-		$OldKeyCompareFileName = $NewKeyCompareFileName
 		$OldKeyHash = $NewKeyHash
 		$OldRec = $NewRec
 
-		$NewKeyCompareFileName = $_.CompareFileName
 		$NewKeyHash = $_.Hash
 		$NewRec = $_
 
-		# ファイル名重複
-		if( $OldKeyCompareFileName -eq $NewKeyCompareFileName ){
+		# ハッシュ重複
+		if( $OldKeyHash -eq $NewKeyHash ){
 			$TmpRec = $OldRec
-			if( $FirstNameFlag -eq $true ){
-				$FirstNameFlag = $false
+			if( $FirstHashFlag -eq $true ){
+				$FirstHashFlag = $false
 			}
 			else{
-				$TmpRec.CompareFileName = [string]$null
-			}
-
-			# ハッシュも重複
-			if( $OldKeyHash -eq $NewKeyHash ){
-				if( $FirstHashFlag -eq $true ){
-					$FirstHashFlag = $false
-				}
-				else{
-					$TmpRec.Hash = [string]$nul
-				}
-			}
-			# ハッシュ ブレーク
-			else{
-				if( $FirstHashFlag -eq $false ){
-					$TmpRec.Hash = [string]$nul
-				}
-				$FirstHashFlag = $true
+				$TmpRec.Hash = [string]$nul
 			}
 
 			# 重複データ
 			return $TmpRec
 		}
-		# キーブレーク
+		# ハッシュ ブレーク
 		else{
 			# キーブレークした後は重複データを出力する
-			if( $FirstNameFlag -eq $false ){
+			if( $FirstHashFlag -eq $false ){
 				$TmpRec = $OldRec
+				$TmpRec.Hash = [string]$nul
 
-				# ファイル名重複
-				$TmpRec.CompareFileName = [string]$null
-
-				# ハッシュも重複
-				if( $FirstHashFlag -eq $false ){
-						$TmpRec.Hash = [string]$nul
-
-				}
 				# フラグクリア
-				$FirstNameFlag = $true
 				$FirstHashFlag = $true
 
 				# 重複データ
@@ -409,21 +374,14 @@ filter KeyBreak{
 	END{
 		# 残ったデーターを出力
 		# キーブレークした後は重複データを出力する
-		if( $FirstNameFlag -eq $false ){
-
-			$TmpRec = $NewRec
-
-			# ファイル名重複
-			$TmpRec.CompareFileName = [string]$null
-
-			# ハッシュも重複
-			if( $FirstHashFlag -eq $false ){
-					$TmpRec.Hash = [string]$nul
-			}
+		# ハッシュ重複
+		if( $FirstHashFlag -eq $false ){
+			$TmpRec.Hash = [string]$nul
 
 			# 重複データ
 			return $TmpRec
 		}
+
 	}
 }
 
@@ -445,11 +403,10 @@ filter GetAllFiles{
 ###################################################
 function DataSort($TergetFilesData){
 	[array]$SortFilesData = $TergetFilesData | Sort-Object -Property `
-													CompareFileName,
 													Hash,
 													FullPathLength,
 													OriginalFileNameLength,
-													OriginalFileName
+													FileName
 	return $SortFilesData
 }
 
@@ -465,10 +422,9 @@ function OutputAllData([array]$DuplicateFiles, $Now){
 		mdkdir $CSVPath
 	}
 	$SortFilesData | Select-Object `
-						CompareFileName,
-						Hash,
 						FullPath,
-						OriginalFileName,
+						Hash,
+						FileName,
 						LastUpdate | Export-Csv -Path $OutputFile -Encoding Default
 }
 
@@ -486,10 +442,9 @@ function OutputDuplicateData([array]$SortFilesData, $Now){
 		mdkdir $CSVPath
 	}
 	$DuplicateFiles | Select-Object `
-							CompareFileName,
-							Hash,
 							FullPath,
-							OriginalFileName,
+							Hash,
+							FileName,
 							LastUpdate,
 							Operation,
 							BackupdFileName | Export-Csv -Path $OutputFile -Encoding Default
@@ -508,89 +463,78 @@ function FileOperation( [array]$DuplicateFiles ){
 	$OriginalFilePath = [string]$null
 
 	for( $i = 0; $i -lt $DuplicateFileCount; $i++ ){
-		# ファイル名重複
-		if( $DuplicateFiles[$i].CompareFileName -eq [string]$null ){
+		# ハッシュ重複
+		if( $DuplicateFiles[$i].Hash -eq [string]$null ){
 
 			# 重複したファイル名
 			$DuplicateFile = $DuplicateFiles[$i].FullPath
 
-			# ファイル重複
-			if( $DuplicateFiles[$i].Hash -eq [string]$null ){
+			# オペレーション : Move
+			if( $Move -ne [string]$null ){
 
-				# オペレーション : Move
-				if( $Move -ne [string]$null ){
+				if( -not (Test-Path $Move)){
+					md $Move
+				}
+				$DuplicateFiles[$i].Operation = "Move"
 
-					if( -not (Test-Path $Move)){
-						md $Move
-					}
-					$DuplicateFiles[$i].Operation = "Move"
+				# Default 移動先ファイル名
+				$MoveDdestinationFileFullName = Join-Path $Move $DuplicateFiles[$i].FileName
 
-					# Default 移動先ファイル名
-					$MoveDdestinationFileFullName = Join-Path $Move $DuplicateFiles[$i].OriginalFileName
+				# Default 移動元ファイル名
+				$MoveSourceFileFullName = $DuplicateFile
 
-					# Default 移動元ファイル名
-					$MoveSourceFileFullName = $DuplicateFile
+				# 加工用移動先ファイル名
+				$CompareFileName = GetCompareFileName $DuplicateFiles[$i].FileName
+				$TempBuffer = $CompareFileName.Split( "." )
+				$Ext = "." + $TempBuffer[$TempBuffer.Count -1]
+				$Body = $CompareFileName.Replace($Ext, "")
+				$SourceDirectory = Split-Path $DuplicateFile -Parent
 
-					# 加工用移動先ファイル名
-					$CompareFileName = GetCompareFileName $DuplicateFiles[$i].OriginalFileName
-					$TempBuffer = $CompareFileName.Split( "." )
-					$Ext = "." + $TempBuffer[$TempBuffer.Count -1]
-					$Body = $CompareFileName.Replace($Ext, "")
-					$SourceDirectory = Split-Path $DuplicateFile -Parent
-
-					# 移動先重複回避
-					$Index = 0
-					while($true){
-						# 重複なし
-						if( -not (Test-Path $MoveDdestinationFileFullName)){
-							# ファイル移動
-							if( -not $WhatIf ){
-								Move-Item $MoveSourceFileFullName $MoveDdestinationFileFullName
-								# ショートカットを残す
-								if( $CreateShortcut ){
-									CreateShortcut $MoveSourceFileFullName $OriginalFilePath
-								}
+				# 移動先重複回避
+				$Index = 0
+				while($true){
+					# 重複なし
+					if( -not (Test-Path $MoveDdestinationFileFullName)){
+						# ファイル移動
+						if( -not $WhatIf ){
+							Move-Item $MoveSourceFileFullName $MoveDdestinationFileFullName
+							# ショートカットを残す
+							if( $CreateShortcut ){
+								CreateShortcut $MoveSourceFileFullName $OriginalFilePath
 							}
-							Log "[INFO] File duplicate (Move) : $DuplicateFile"
-							break
 						}
-
-
-						# 移動先重複なのでファイル名をインクリメントする
-						$Index++
-						$MovedFileName = $Body + " (" + $Index + ")" + $Ext
-
-						# 移動先ファイル名 をFull Path にする
-						$MoveDdestinationFileFullName = Join-Path $Move $MovedFileName
+						Log "[INFO] File duplicate (Move) : $DuplicateFile"
+						break
 					}
 
-					# 移動先ファイル名
-					$DuplicateFiles[$i].BackupdFileName = $MoveDdestinationFileFullName
+					# 移動先重複なのでファイル名をインクリメントする
+					$Index++
+					$MovedFileName = $Body + " (" + $Index + ")" + $Ext
 
-					$OperationCount++
+					# 移動先ファイル名 をFull Path にする
+					$MoveDdestinationFileFullName = Join-Path $Move $MovedFileName
 				}
-				# オペレーション : Remove
-				elseif( $Remove ){
-					$DuplicateFiles[$i].Operation = "Remove"
 
-					if( -not $WhatIf ){
-						# 削除
-						Remove-Item $DuplicateFile
-						# ショートカットを残す
-						if( $CreateShortcut ){
-							CreateShortcut $DuplicateFile $OriginalFilePath
-						}
-					}
-					Log "[INFO] File duplicate (Remove) : $DuplicateFile"
+				# 移動先ファイル名
+				$DuplicateFiles[$i].BackupdFileName = $MoveDdestinationFileFullName
 
-					$OperationCount++
-				}
+				$OperationCount++
 			}
-			# ファイル名のみ重複はオリジナルファイル判定
-			else{
-				# Log "[INFO] Name duplicate (NOP) : $DuplicateFile"
-				$DuplicateFiles[$i].Operation = "Original"
-				$OriginalFilePath = $DuplicateFiles[$i].FullPath
+			# オペレーション : Remove
+			elseif( $Remove ){
+				$DuplicateFiles[$i].Operation = "Remove"
+
+				if( -not $WhatIf ){
+					# 削除
+					Remove-Item $DuplicateFile
+					# ショートカットを残す
+					if( $CreateShortcut ){
+						CreateShortcut $DuplicateFile $OriginalFilePath
+					}
+				}
+				Log "[INFO] File duplicate (Remove) : $DuplicateFile"
+
+				$OperationCount++
 			}
 		}
 		# オリジナルファイル判定
@@ -599,9 +543,9 @@ function FileOperation( [array]$DuplicateFiles ){
 			$OriginalFilePath = $DuplicateFiles[$i].FullPath
 		}
 	}
-
 	return $OperationCount
 }
+
 
 ###################################################
 # ファイルのショートカットを作る
