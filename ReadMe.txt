@@ -107,6 +107,9 @@ PS C:\Photo> ~\FindDuplicateFile.ps1 -Recurse -Pattern *.jpg, *.png
 PS C:\Photo> ~\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複リストを出力します
 
+PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -ExcludePattern *.iso, *.mov, *.mp4
+「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.iso」と「*.mov」と「*.mp4」以外の重複リストを出力します
+
 PS C:\Photo> ~\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -Recurse -Pattern *.jpg, *.png -Remove
 「C:\Photo\2018-10」と「C:\Photo\2016-03」以下にある「*.jpg」と「*.png」の重複ファイルを削除します
 
