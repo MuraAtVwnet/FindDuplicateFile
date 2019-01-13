@@ -153,6 +153,6 @@ git@github.com:MuraAtVwnet/FindDuplicateFile.git
 http://www.vwnet.jp/Windows/PowerShell/2018111601/FindDuplicateFile.htm
 
 ■ Feed back
-Bug リポートなどありましたら mail で feed back してください
+Bug リポートなどありましたらfeed back をください
 
 mura-softwaers@vwnet.jp
