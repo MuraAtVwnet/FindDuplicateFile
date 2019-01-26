@@ -23,11 +23,17 @@ FindDuplicateFile.ps1 -Remove
 FindDuplicateFile.ps1 -Move  C:\Backup
 
 ■ 構文
-FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>]  [[-ExcludePattern] <String[]>] [-Remove] [[-Move] <String>] [[-CSVPath] <String>] [[-LogPath] <String>] [-AllList] [-WhatIf] [<CommonParameters>]
+FindDuplicateFile.ps1 [[-Path] <String[]>] [[-ExcludePath] <String[]>] [-Recurse] [[-Pattern] <String[]>] [[-ExcludePattern] <String[]>] [-Remove] [[-Move] <String>] [-CreateShortcut] [[-CSVPath] <String>] [[-LogPath] <String>] [-AllList] [-WhatIf] [<CommonParameters>]
 
 ■ 説明
 重複リストのみ出力(Remove/Moveオプションを指定していない時の動作)
     重複リスト出力だけをします
+
+探査する Path(-Path)
+    探査する Path を指定します
+
+除外する Path(-ExcludePath)
+    探査しない Path を指定します
 
 サブディレクトリも探査(-Recurse)
     サブディレクトリも探査します
@@ -59,6 +65,11 @@ FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>]  [[-ExcludePa
 -Path
     探索 Path
     省略時はカレントディレクトリ以下を探索します
+    複数指定する場合はカンマで区切ります
+
+-ExcludePath
+    探索から除外する Path
+    省略時は除外しません
     複数指定する場合はカンマで区切ります
 
 -Recurse
@@ -105,6 +116,12 @@ FindDuplicateFile.ps1 [[-Path] <String[]>] [[-Pattern] <String[]>]  [[-ExcludePa
 
 PS C:\Photo> ~\FindDuplicateFile.ps1 -Recurse
 カレントディレクトリ(C:\Photo)以下にある全ファイルの重複リストを出力します
+
+PS C:\Test> .\FindDuplicateFile.ps1 -Path "C:\Photo" -Recurse
+指定ディレクトリ(C:\Photo)以下にある全ファイルの重複リストを出力します
+
+PS C:\Test> .\FindDuplicateFile.ps1 -Path "C:\Photo" -Recurse -ExcludePath "C:\Photo\Movie"
+指定ディレクトリ(C:\Photo)以下にある全ファイルの重複リストを出力しますが、除外ディレクトリ(C:\Photo\Movie)は対象外にします
 
 PS C:\Photo> ~\FindDuplicateFile.ps1 -Recurse -Pattern *.jpg, *.png
 カレントディレクトリ(C:\Photo)以下にある「*.jpg」と「*.png」の重複リストを出力します

@@ -13,6 +13,12 @@
 重複リストのみ出力(Remove/Moveオプションを指定していない時の動作)
     重複リスト出力だけをします
 
+探査する Path(-Path)
+    探査する Path を指定します
+
+除外する Path(-ExcludePath)
+    探査しない Path を指定します
+
 サブディレクトリも探査(-Recurse)
     サブディレクトリも探査します
 
@@ -43,6 +49,12 @@
 .EXAMPLE
 PS C:\Photo> .\FindDuplicateFile.ps1 -Recurse
 カレントディレクトリ(C:\Photo)以下にある全ファイルの重複リストを出力します
+
+PS C:\Test> .\FindDuplicateFile.ps1 -Path "C:\Photo" -Recurse
+指定ディレクトリ(C:\Photo)以下にある全ファイルの重複リストを出力します
+
+PS C:\Test> .\FindDuplicateFile.ps1 -Path "C:\Photo" -Recurse -ExcludePath "C:\Photo\Movie"
+指定ディレクトリ(C:\Photo)以下にある全ファイルの重複リストを出力しますが、除外ディレクトリ(C:\Photo\Movie)は対象外にします
 
 .EXAMPLE
 PS C:\Photo> .\FindDuplicateFile.ps1 -Recurse -Pattern *.jpg, *.png
@@ -88,6 +100,11 @@ PS C:\Photo> .\FindDuplicateFile.ps1 -Path C:\Photo\2018-10, C:\Photo\2016-03 -R
 .PARAMETER Path
 探索 Path
 省略時はカレントディレクトリ以下を探索します
+複数指定する場合はカンマで区切ります
+
+.PARAMETER ExcludePath
+探索から除外する Path
+省略時は除外しません
 複数指定する場合はカンマで区切ります
 
 .PARAMETER Pattern
@@ -138,6 +155,7 @@ http://www.vwnet.jp/Windows/PowerShell/2018111601/FindDuplicateFile.htm
 ###################################################
 Param(
 	[string[]]$Path,			# 探査する Path
+	[string[]]$ExcludePath,		# 除外する Path
 	[switch]$Recurse,			# サブディレクトリも探査する
 	[string[]]$Pattern,			# ファイルパターン
 	[string[]]$ExcludePattern,	# 除外ファイルパターン
@@ -256,6 +274,38 @@ filter ExcludeFiles{
 		return $_
 	}
 }
+
+###################################################
+# 指定 Path 除外
+###################################################
+filter ExcludePath{
+	$ExcludeFlag = $false
+	foreach($Exclude in $ExcludePath){
+		$FullPath = $_.FullName
+		$Directory = Split-Path -Path $FullPath -Parent
+
+		# 末尾に \ がなかったら追加する
+		if( $Directory[$Directory.Length -1] -ne "\" ){
+			$Directory += "\"
+		}
+
+		if( $Exclude[$Exclude.Length -1] -ne "\" ){
+			$Exclude += "\"
+		}
+
+		# \ が正規表現のエスケープ文字と認識されないように _ に置き換え
+		$Directory = $Directory.Replace("\","_")
+		$Exclude = $Exclude.Replace("\","_")
+
+		if( $Directory -match $Exclude ){
+			$ExcludeFlag = $true
+		}
+	}
+	if( $ExcludeFlag -eq $false ){
+		return $_
+	}
+}
+
 
 ###################################################
 # 比較ファイル名作成
@@ -658,10 +708,21 @@ if( $ExcludePattern.Count -ne 0 ){
 	$Patterns = ""
 	$ExcludePattern | %{ $Patterns += $_ + " " }
 	Log "[INFO] Exclude pattern : $Patterns"
-	[array]$TergetFiles =  $TergetFiles | ExcludeFiles
+	[array]$TergetFiles = $TergetFiles | ExcludeFiles
 }
 else{
-	Log "[INFO] Not exclude file."
+	Log "[INFO] No exclude file."
+}
+
+# 除外 Path で対象ファイルを絞る
+if( $ExcludePath.Count -ne 0 ){
+	$Paths = ""
+	$ExcludePath | %{ $Paths += $_ + " " }
+	Log "[INFO] Exclude path : $Paths"
+	[array]$TergetFiles = $TergetFiles | ExcludePath
+}
+else{
+	Log "[INFO] No exclude path."
 }
 
 # 対象ファイルに Hash などの必要情報を追加
